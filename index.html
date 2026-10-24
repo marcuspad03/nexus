@@ -472,7 +472,7 @@ const S = {
   scan: store.get('scan', null),
   quota: store.get('quota', null),
   analysis: { arbs: [], values: [], books: [] },
-  evById: new Map(), evCache: new Map(), evq: '', evLeague: 'all', leagueQ: '', keyStatus: '', tgStatus: ''
+  evById: new Map(), evCache: new Map(), evq: '', evLeague: 'all', leagueQ: '', keyStatus: '', tgStatus: '', chatStatus: ''
 };
 const saveSettings = () => store.set('settings', S.settings);
 const saveBalances = () => store.set('balances', S.balances);
@@ -877,7 +877,7 @@ function viewSetup() {
     '<div class="group"><h3>Telegram</h3><div class="panel">' +
     rowS('Meldungen', sw('tg.enabled', tg.enabled), 'Nach jedem Scan, nur während NEXUS geöffnet ist. iOS pausiert Web-Apps im Hintergrund.') +
     rowS('Bot-Token', '<input class="field" style="width:100%;text-align:left" type="password" data-set="tg.token" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="123456:ABC…" value="' + esc(tg.token) + '">', null, true) +
-    rowS('Chat-ID', '<input class="field" style="width:100%;text-align:left" inputmode="numeric" data-set="tg.chat" autocomplete="off" placeholder="z. B. 123456789" value="' + esc(tg.chat) + '">', null, true) +
+    rowS('Chat-ID', '<div style="display:flex;gap:8px;width:100%"><input class="field" id="tgChat" style="flex:1;min-width:0;text-align:left" inputmode="numeric" data-set="tg.chat" autocomplete="off" placeholder="z. B. 123456789" value="' + esc(tg.chat) + '"><button class="btn small" data-act="findchat">Finden</button></div>', '<span id="chatStatus">' + esc(S.chatStatus || 'Schreib deinem Bot einmal „Hallo“ und tippe dann auf Finden.') + '</span>', true) +
     rowS('Arbitrage melden', sw('tg.arb', tg.arb)) + rowS('Value Bets melden', sw('tg.value', tg.value)) +
     rowS('Testnachricht', '<button class="btn small" data-act="testtg">Senden</button>', '<span id="tgStatus">' + esc(S.tgStatus) + '</span>') +
     '</div></div>' +
@@ -1016,6 +1016,29 @@ document.addEventListener('click', async e => {
     try { const n = await loadSports(); S.keyStatus = 'Verbunden · ' + n + ' Sportarten · ' + (S.quota && S.quota.remaining != null ? nf(S.quota.remaining, 0) + ' Anfragen übrig' : 'Kontingent unbekannt'); toast('Verbunden. ' + S.settings.sports.length + ' Ligen vorausgewählt.'); }
     catch (err) { S.keyStatus = err.message; }
     if (S.tab === 'setup') renderView();
+  }
+  else if (act === 'findchat') {
+    /* Liest die Chat-ID aus der letzten Nachricht an den Bot (getUpdates). */
+    const tokIn = document.querySelector('[data-set="tg.token"]'); const st = $('#chatStatus');
+    const token = ((tokIn && tokIn.value) || S.settings.tg.token).trim();
+    if (!token) { st.textContent = 'Trag zuerst den Bot-Token ein.'; return; }
+    S.settings.tg.token = token; saveSettings();
+    st.textContent = 'Suche …'; el.disabled = true;
+    try {
+      const res = await fetch('https://api.telegram.org/bot' + token + '/getUpdates');
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(res.status === 401 ? 'Bot-Token ungültig.' : (j.description || 'Telegram-Fehler ' + res.status));
+      const ups = (j.result || []).slice().reverse();
+      const u = ups.find(x => x.message || x.edited_message || x.my_chat_member || x.channel_post);
+      const chat = u && (u.message || u.edited_message || u.my_chat_member || u.channel_post).chat;
+      if (!chat) { S.chatStatus = 'Noch keine Nachricht gefunden. Öffne deinen Bot in Telegram, schreib „Hallo“ und tippe erneut auf Finden.'; }
+      else {
+        S.settings.tg.chat = String(chat.id); saveSettings();
+        const inp = $('#tgChat'); if (inp) inp.value = S.settings.tg.chat;
+        S.chatStatus = 'Gefunden: ' + (chat.first_name || chat.title || chat.username || 'Chat') + ' · ' + chat.id; toast('Chat-ID eingetragen');
+      }
+    } catch (err) { S.chatStatus = err.message === 'Failed to fetch' ? 'Telegram nicht erreichbar.' : err.message; }
+    el.disabled = false; const s2 = $('#chatStatus'); if (s2) s2.textContent = S.chatStatus;
   }
   else if (act === 'testtg') {
     const tg = S.settings.tg; const st = $('#tgStatus');
