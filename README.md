@@ -22,3 +22,9 @@ Adresse in **Safari** öffnen → **Teilen** → **Zum Home-Bildschirm**.
 - Optional **Telegram**: Bot-Token von @BotFather und deine Chat-ID
 
 Schlüssel, Konten und Einstellungen werden nur lokal im Browser gespeichert, nie im Repo.
+
+## Windows-Programm (NEXUS.exe)
+
+`desktop/` enthält ein kleines Go-Programm, das die App in eine `.exe` packt. Es startet NEXUS lokal unter `http://127.0.0.1:47821` und öffnet den Standardbrowser. Bauen mit `desktop/build.sh` (braucht Go).
+
+Beim ersten Start warnt Windows ("Der Computer wurde durch Windows geschützt"), weil die Datei nicht signiert ist: **Weitere Informationen → Trotzdem ausführen**.
