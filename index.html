@@ -459,7 +459,7 @@ const store = {
 };
 const DEFAULTS = {
   apiKey: '', regions: ['eu', 'uk'], markets: ['h2h'], days: 3, sports: [], includeLive: false, autoMin: 0,
-  minArb: 0, minEdge: 3, kelly: 0.25, maxStake: 5, bankroll: 0, onlyMine: false, roundStakes: true, arbTotal: 100,
+  minArb: 0, minEdge: 3, kelly: 0.25, maxStake: 5, bankroll: 0, onlyMine: false, roundStakes: true, arbTotal: 100, goal: 100,
   tg: { token: '', chat: '', enabled: false, arb: true, value: true }
 };
 const merge = (d, s) => { const o = Array.isArray(d) ? [...d] : { ...d }; for (const k in (s || {})) { o[k] = (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) ? merge(d[k], s[k]) : s[k]; } return o; };
@@ -480,8 +480,9 @@ const saveBalances = () => store.set('balances', S.balances);
 /* ---------- Formatierung ---------- */
 const nfs = {};
 const nf = (v, d = 2) => (nfs[d] || (nfs[d] = new Intl.NumberFormat('de-AT', { minimumFractionDigits: d, maximumFractionDigits: d }))).format(v);
-const eur = v => nf(v, Math.abs(v - Math.round(v)) < 0.005 ? 0 : 2) + ' €';
-const eurc = v => nf(v, 2) + ' €';
+/* Beträge in ganzen Euro. Zwischen 0 und 1 € steht „unter 1 €“, damit kein Gewinn als 0 € erscheint. */
+const eur = v => { const r = Math.round(v); return r === 0 && v > 0 ? 'unter 1 €' : nf(r, 0) + ' €'; };
+const eurc = eur;
 const pct = (v, d = 2) => nf(v * 100, d) + ' %';
 const odds = o => nf(o, 2);
 const parseNum = s => {
@@ -771,6 +772,12 @@ function viewChancen() {
   }
   return head + '<div class="list">' + (S.seg === 'arb' ? list.map(arbCard) : list.map(valueCard)).join('') + '</div>';
 }
+/* Gewinn in Euro beim gewählten Gesamteinsatz und wie viele solcher Arbitragen bis zum Gewinnziel nötig sind. */
+function goalLine(a) {
+  const st = S.settings, r = Logic.arbStakes(st.arbTotal, a.best, st.roundStakes);
+  const n = r.profit > 0 ? Math.ceil(st.goal / r.profit) : null;
+  return '<span class="kv"><span>Bei ' + eur(r.spent) + ' Einsatz <b style="color:var(--pos)">+' + eur(r.profit) + '</b></span><span>' + (n ? 'Ziel ' + eur(st.goal) + ': <b>' + nf(n, 0) + '×</b>' : 'Kein Gewinn nach Runden') + '</span></span>';
+}
 /* Quotensumme: Summe der Kehrwerte der besten Quoten. Unter 100 % ist der Gewinn garantiert. */
 function sumBar(a) {
   const w = Math.min(100, a.sum * 100);
@@ -788,7 +795,7 @@ function arbCard(a) {
   if (a.margin > 0.08) flags.push('<span class="flag">Ungewöhnlich hoch – prüfen</span>');
   if (S.balances.length) { const miss = a.best.filter(b => balanceFor(b) == null); if (miss.length) flags.push('<span class="flag">Kein Konto: ' + esc(miss.map(m => m.title).join(', ')) + '</span>'); else flags.push('<span class="flag ok">Alle Konten vorhanden</span>'); }
   return '<button class="card" data-act="open" data-type="arb" data-id="' + esc(a.id) + '"><span class="card-top"><span class="badge">+' + pct(a.margin) + '</span><span class="meta">' + esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + '</span></span>' +
-    '<span class="teams">' + evTitle(ev) + '</span><span class="legs">' + a.best.map(b => '<span class="leg"><span class="leg-o">' + esc(outLabel(a, b.name, ev)) + '</span><span class="leg-b">' + bkChip(b.title) + '<span>' + esc(b.title) + '</span></span><span class="leg-p">' + odds(b.price) + '</span></span>').join('') + '</span>' + sumBar(a) +
+    '<span class="teams">' + evTitle(ev) + '</span><span class="legs">' + a.best.map(b => '<span class="leg"><span class="leg-o">' + esc(outLabel(a, b.name, ev)) + '</span><span class="leg-b">' + bkChip(b.title) + '<span>' + esc(b.title) + '</span></span><span class="leg-p">' + odds(b.price) + '</span></span>').join('') + '</span>' + sumBar(a) + goalLine(a) +
     (flags.length ? '<span class="flags">' + flags.join('') + '</span>' : '') + '</button>';
 }
 function valueCard(v) {
@@ -872,6 +879,8 @@ function viewSetup() {
     rowS('Kelly-Anteil', selIn('kelly', st.kelly, [[0.1, '10 %'], [0.25, '25 % (Viertel)'], [0.5, '50 % (Halb)'], [1, '100 % (Voll)']], true), 'Ein Bruchteil des Kelly-Einsatzes senkt das Risiko.') +
     rowS('Max. Einsatz', numIn('maxStake', st.maxStake, '%'), 'Obergrenze pro Wette in Prozent der Bankroll.') +
     rowS('Bankroll ohne Konten', numIn('bankroll', st.bankroll || 0, '€'), 'Wird genutzt, wenn unter Konten kein Guthaben steht.') +
+    rowS('Gesamteinsatz pro Arbitrage', numIn('arbTotal', st.arbTotal, '€'), 'So viel verteilst du auf alle Seiten einer Arbitrage.') +
+    rowS('Gewinnziel', numIn('goal', st.goal, '€'), 'NEXUS zeigt auf jeder Karte, wie viele Arbitragen du dafür brauchst.') +
     rowS('Auf ganze Euro runden', sw('roundStakes', st.roundStakes), 'Für Arbitrage-Einsätze.') +
     '</div></div>' +
     '<div class="group"><h3>Telegram</h3><div class="panel">' +
@@ -900,6 +909,7 @@ function arbCalcHTML(a, total) {
   }).join('');
   const ok = r.profit > 0;
   return '<div class="hero"><div><small>Garantierter Gewinn</small><div class="big' + (ok ? '' : ' neg') + '">' + (r.profit >= 0 ? '+' : '') + eurc(r.profit) + '</div></div><div style="text-align:right"><small>Rendite</small><div class="mono" style="font-weight:700;font-size:18px">' + pct(r.roi) + '</div><small>Einsatz ' + eur(r.spent) + '</small></div></div>' +
+    (ok ? '<div class="note">Für dein Ziel von <b>' + eur(S.settings.goal) + '</b> brauchst du <b>' + nf(Math.ceil(S.settings.goal / r.profit), 0) + '</b> solche Arbitragen mit je ' + eur(r.spent) + ' Einsatz, oder einen Gesamteinsatz von etwa <b>' + eur(S.settings.goal / r.roi) + '</b> auf diese eine.</div>' : '') +
     (!ok ? '<div class="note warn">Durch das Runden bleibt kein Gewinn. Wähle einen höheren Gesamteinsatz oder schalte das Runden aus.</div>' : '') +
     legs +
     (mt.max != null ? '<div class="note">Mit deinen Guthaben ist ein Gesamteinsatz bis ' + eur(Math.floor(mt.max)) + ' möglich' + (mt.unknown ? ' (für Buchmacher ohne Konto nicht berücksichtigt)' : '') + '.</div>' : '');
@@ -1067,7 +1077,7 @@ document.addEventListener('change', e => {
   else if (el.dataset.num) { val = parseNum(el.value); if (!Number.isFinite(val) || val < 0) { toast('Bitte eine gültige Zahl eingeben.'); const cur = key.split('.').reduce((o, k) => o[k], S.settings); el.value = String(cur).replace('.', ','); return; } }
   else val = el.value.trim();
   setPath(S.settings, key, val); saveSettings();
-  if (['onlyMine', 'minArb', 'minEdge', 'includeLive', 'kelly', 'maxStake', 'bankroll', 'roundStakes'].includes(key)) { analyze(); renderTop(); if (S.tab === 'chancen' || el.type === 'checkbox') renderView(); }
+  if (['onlyMine', 'minArb', 'minEdge', 'includeLive', 'kelly', 'maxStake', 'bankroll', 'roundStakes', 'arbTotal', 'goal'].includes(key)) { analyze(); renderTop(); if (S.tab === 'chancen' || el.type === 'checkbox') renderView(); }
   else if (['days', 'autoMin', 'tg.enabled', 'tg.arb', 'tg.value'].includes(key)) { if (el.tagName === 'SELECT' || el.type === 'checkbox') renderView(); }
   const ce = $('#costEst'); if (ce) ce.textContent = cost();
 });

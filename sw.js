@@ -1,5 +1,5 @@
 /* NEXUS Service Worker: App-Hülle offline verfügbar, Quoten und Telegram immer live aus dem Netz. */
-const VERSION = 'nexus-v4';
+const VERSION = 'nexus-v5';
 const SHELL = [
   './',
   './index.html',
