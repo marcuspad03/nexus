@@ -1,0 +1,17 @@
+{
+  "name": "NEXUS",
+  "short_name": "NEXUS",
+  "description": "NEXUS scannt echte Live-Quoten nach Arbitrage und Value Bets.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0C0F14",
+  "theme_color": "#0C0F14",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

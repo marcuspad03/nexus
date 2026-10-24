@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F1F2F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C0F14" media="(prefers-color-scheme: dark)">
+<meta name="description" content="NEXUS scannt echte Live-Quoten nach Arbitrage und Value Bets.">
+<title>NEXUS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+
+<style>
+/* Sicherheitsabstände (Notch, Home-Balken): nur in der installierten App selbst anwenden. Im Browser und im Artefakt-Rahmen sind sie schon berücksichtigt. */
+:root{--st:0px;--sb:0px;--sl:0px;--sr:0px}
+@media (display-mode:standalone){:root{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}}
+html.standalone{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
+/* Layout: Tab-Leiste unten auf dem iPhone, Seitenleiste ab Tablet-Breite. Inhalt scrollt in .main, nie im body. */
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#F1F2F4; --surface:#FFFFFF; --surface2:#E9EBEF; --glass:rgba(250,251,252,.80);
+  --line:rgba(15,20,30,.10); --fg:#0F141B; --fg2:#465062; --fg3:#778092;
+  --accent:#8F600A; --accent-soft:rgba(143,96,10,.12); --on-accent:#FFFFFF;
+  --pos:#0A7F52; --pos-soft:rgba(10,127,82,.12);
+  --neg:#C0332C; --neg-soft:rgba(192,51,44,.11);
+  --warn:#9A5800; --warn-soft:rgba(154,88,0,.12);
+  --shadow:0 1px 2px rgba(15,20,30,.05),0 10px 28px rgba(15,20,30,.06);
+  --scrim:rgba(8,10,14,.46);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0C0F14; --surface:#151A22; --surface2:#1E242E; --glass:rgba(18,22,29,.78);
+    --line:rgba(255,255,255,.08); --fg:#EEF1F5; --fg2:#A5AEBC; --fg3:#707A8B;
+    --accent:#E2B24F; --accent-soft:rgba(226,178,79,.14); --on-accent:#1A1304;
+    --pos:#3DD598; --pos-soft:rgba(61,213,152,.13);
+    --neg:#FF7168; --neg-soft:rgba(255,113,104,.13);
+    --warn:#F0B056; --warn-soft:rgba(240,176,86,.14);
+    --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px rgba(0,0,0,.35);
+    --scrim:rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 var(--font);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;cursor:pointer}
+h1,h2,h3,p{margin:0}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.app{height:100%;display:flex;flex-direction:column}
+.main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-top:var(--st)}
+.wrap{width:100%;max-width:1040px;margin:0 auto;padding-left:max(16px,var(--sl));padding-right:max(16px,var(--sr))}
+.top{position:sticky;top:0;z-index:20;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-bottom:1px solid var(--line);padding-top:max(10px,var(--st));margin-top:calc(-1 * var(--st))}
+.top-in{padding-top:6px;padding-bottom:12px;display:flex;flex-direction:column;gap:12px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-size:30px;line-height:34px;font-weight:750;letter-spacing:-.02em}
+.sub{margin-top:2px;font-size:13px;color:var(--fg2);min-height:18px}
+.prog{height:3px;background:var(--line);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+#view{padding-top:16px;padding-bottom:28px}
+
+/* Navigation */
+.nav{order:2;display:flex;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-top:1px solid var(--line);padding:6px max(8px,var(--sr)) calc(6px + var(--sb)) max(8px,var(--sl));z-index:30}
+.brand{display:none}
+.nav button{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;border-radius:12px;color:var(--fg3);font-size:10.5px;font-weight:600;letter-spacing:.01em}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="true"]{color:var(--accent)}
+.nav button:focus-visible,.btn:focus-visible,.card:focus-visible,.chip:focus-visible,.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (min-width:860px){
+  .app{flex-direction:row}
+  .nav{order:-1;flex-direction:column;justify-content:flex-start;gap:4px;width:224px;flex:none;border-top:0;border-right:1px solid var(--line);padding:calc(22px + var(--st)) 12px 16px max(12px,var(--sl))}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px;font-weight:800;letter-spacing:.14em;font-size:15px}
+  .brand i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#1B222D,#0A0D12);display:grid;place-items:center;color:#E2B24F;font-style:normal;font-size:14px;letter-spacing:0}
+  .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;min-height:44px;padding:0 12px;font-size:15px}
+  .nav button[aria-current="true"]{background:var(--accent-soft)}
+  .top-in{padding-top:12px}
+  .list{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+/* Controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-weight:650;font-size:15px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.btn.small{min-height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+.btn.danger{color:var(--neg)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btn svg{width:18px;height:18px}
+.icon-btn{width:40px;height:40px;border-radius:20px;border:0;background:var(--surface2);display:grid;place-items:center;flex:none}
+.icon-btn svg{width:18px;height:18px}
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;min-height:36px;border:0;border-radius:9px;background:none;font-weight:650;font-size:14px;color:var(--fg2);display:flex;align-items:center;justify-content:center;gap:8px}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg i{font-style:normal;font-family:var(--mono);font-size:12px;padding:1px 7px;border-radius:9px;background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--surface);font-size:14px;font-weight:600;color:var(--fg2)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.field{width:100%;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);font-size:16px;outline:none;-webkit-appearance:none;appearance:none}
+.field:focus{border-color:var(--accent)}
+select.field{background-image:linear-gradient(45deg,transparent 50%,var(--fg3) 50%),linear-gradient(135deg,var(--fg3) 50%,transparent 50%);background-position:calc(100% - 20px) 19px,calc(100% - 15px) 19px;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+.sw{position:relative;display:inline-block;width:51px;height:31px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;width:100%;height:100%;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:16px;background:var(--surface2);border:1px solid var(--line);transition:background .2s}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:25px;height:25px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:transform .2s}
+.sw input:checked+span{background:var(--pos);border-color:transparent}
+.sw input:checked+span::after{transform:translateX(20px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Karten */
+.list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.card{display:flex;flex-direction:column;gap:12px;width:100%;min-width:0;text-align:left;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.card:active{transform:scale(.988)}
+.card>span{display:block;min-width:0}
+.card-top{display:flex!important;align-items:center;justify-content:space-between;gap:10px}
+.meta{font-size:12.5px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.teams{font-size:17px;font-weight:700;letter-spacing:-.01em;overflow-wrap:anywhere}
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:700;font-size:15px;padding:4px 10px;border-radius:10px;background:var(--pos-soft);color:var(--pos);white-space:nowrap}
+.badge.acc{background:var(--accent-soft);color:var(--accent)}
+.legs{display:flex!important;flex-direction:column;gap:2px}
+.leg{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.leg-o{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-b{color:var(--fg2);font-size:13px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-p{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums}
+.flags{display:flex!important;flex-wrap:wrap;gap:6px}
+.flag{font-size:12px;font-weight:650;padding:3px 9px;border-radius:9px;background:var(--warn-soft);color:var(--warn)}
+.flag.ok{background:var(--pos-soft);color:var(--pos)}
+.kv{display:flex!important;justify-content:space-between;gap:12px;font-size:13.5px;color:var(--fg2)}
+.kv b{color:var(--fg);font-weight:650}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:44px 12px 28px;max-width:440px;margin:0 auto}
+.empty .glyph{width:64px;height:64px;border-radius:20px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.empty .glyph svg{width:30px;height:30px}
+.empty h2{font-size:21px;letter-spacing:-.01em}
+.empty p{color:var(--fg2);font-size:15px}
+.note{font-size:13px;color:var(--fg2);padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.bar-info{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--fg2)}
+.bar-info label{margin-left:auto;display:flex;align-items:center;gap:10px;font-weight:600;color:var(--fg)}
+.errs{margin-bottom:14px}
+
+/* Gruppierte Listen (Einstellungen, Konten) */
+.group{margin-bottom:22px}
+.group>h3{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);padding:0 6px 8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;min-height:56px}
+.row+.row{border-top:1px solid var(--line)}
+.row.stack{flex-direction:column;align-items:stretch;gap:8px}
+.row-t{font-weight:600;font-size:15.5px}
+.row-h{font-size:12.5px;color:var(--fg2);margin-top:2px}
+.row-c{display:flex;align-items:center;gap:8px;flex:none}
+.row-c .field{width:120px;text-align:right}
+.row-c select.field{width:auto;min-width:130px;text-align:left}
+.row-l{min-width:0}
+.hint{font-size:12.5px;color:var(--fg2);padding:8px 8px 0}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px;margin-bottom:18px}
+.stat>div{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.stat small{display:block;font-size:12px;color:var(--fg2);margin-bottom:4px}
+.stat b{font-size:19px;letter-spacing:-.02em;white-space:nowrap}
+.acct{display:grid;grid-template-columns:minmax(0,1fr) 128px 40px;gap:10px;align-items:center;padding:10px 16px}
+.acct+.acct{border-top:1px solid var(--line)}
+.acct .nm{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct .st{font-size:12px;color:var(--fg2)}
+.acct .field{text-align:right}
+.addrow{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:10px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
+@media (max-width:520px){.addrow{grid-template-columns:1fr 1fr}.addrow .btn{grid-column:1/-1}}
+
+/* Sheet */
+#sheetRoot{position:fixed;inset:0;z-index:60;pointer-events:none}
+#sheetRoot.open{pointer-events:auto}
+.scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .28s;touch-action:none}
+.open .scrim{opacity:1}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;max-height:92dvh;display:flex;flex-direction:column;background:var(--bg);border-radius:26px 26px 0 0;transform:translateY(102%);transition:transform .34s cubic-bezier(.2,.8,.2,1);box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.open .sheet{transform:none}
+.grab{padding:10px 0 2px;display:flex;justify-content:center;touch-action:none}
+.grab .bar{width:38px;height:5px;border-radius:3px;background:var(--fg3);opacity:.5}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px max(18px,var(--sl)) 12px max(18px,var(--sl))}
+.sheet-head h2{font-size:20px;line-height:26px;letter-spacing:-.01em;overflow-wrap:anywhere}
+.sheet-head p{font-size:13px;color:var(--fg2);margin-top:2px}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px max(18px,var(--sl)) calc(24px + var(--sb));display:flex;flex-direction:column;gap:16px}
+.sheet-foot{padding:10px 18px calc(12px + var(--sb));border-top:1px solid var(--line);background:var(--surface)}
+@media (min-width:860px){
+  .sheet{left:auto;top:0;width:min(540px,100%);max-height:none;border-radius:26px 0 0 26px;transform:translateX(102%)}
+  .grab{display:none}
+  .sheet-head{padding-top:calc(22px + var(--st))}
+}
+.hero{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.hero .big{font-size:34px;font-weight:750;letter-spacing:-.03em;color:var(--pos);font-family:var(--mono)}
+.hero .big.neg{color:var(--neg)}
+.hero small{color:var(--fg2);font-size:13px}
+.leg-card{padding:14px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline}
+.leg-card .l1{font-weight:700;overflow-wrap:anywhere}
+.leg-card .l2{font-size:13px;color:var(--fg2)}
+.leg-card .stake{font-family:var(--mono);font-size:21px;font-weight:750;text-align:right}
+.leg-card .r2{font-size:12.5px;color:var(--fg2);text-align:right;font-family:var(--mono)}
+.tbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:var(--surface);-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:right;white-space:nowrap;border-top:1px solid var(--line)}
+th{font-size:12px;color:var(--fg2);font-weight:650;border-top:0;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+td.best{color:var(--accent);font-weight:750}
+td.mono,td.best{font-family:var(--mono)}
+.sec-t{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid2>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.grid2 small{display:block;font-size:12px;color:var(--fg2)}
+.grid2 b{font-size:18px;font-family:var(--mono)}
+.sport-grp{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);padding:14px 4px 6px}
+.sport{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:var(--surface);border:0;text-align:left;font-size:15px}
+.sport+.sport{border-top:1px solid var(--line)}
+.sport .ck{width:22px;height:22px;border-radius:11px;border:2px solid var(--fg3);display:grid;place-items:center;flex:none}
+.sport[aria-pressed="true"] .ck{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.sport .ck svg{width:12px;height:12px;opacity:0}
+.sport[aria-pressed="true"] .ck svg{opacity:1}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + var(--sb));z-index:90;max-width:min(92vw,460px);padding:11px 16px;border-radius:14px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:tin .25s ease-out}
+@media (min-width:860px){.toast{bottom:28px}}
+@keyframes tin{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.spin{animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<noscript>NEXUS benötigt JavaScript.</noscript>
+<div class="app" id="app">
+  <nav class="nav" id="nav" aria-label="Hauptnavigation"></nav>
+  <main class="main" id="main">
+    <header class="top" id="top"></header>
+    <div class="wrap" id="view"></div>
+  </main>
+</div>
+<div id="sheetRoot"></div>
+
+<script>
+/*LOGIC-START*/
+const Logic = (() => {
+  const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const devig = odds => { const inv = odds.map(o => 1 / o); const s = sum(inv); return inv.map(x => x / s); };
+  const median = a => { const b = [...a].sort((x, y) => x - y); const m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  const isPinnacle = r => norm(r.key).includes('pinnacle');
+
+  function matchName(entryName, book) {
+    const a = norm(entryName);
+    if (a.length < 3) return false;
+    const t = norm(book.title), k = norm(book.key);
+    return (t.length >= 3 && (t.includes(a) || a.includes(t))) || (k.length >= 3 && (k.includes(a) || a.includes(k)));
+  }
+  function balanceOf(balances, book) {
+    const hit = balances.find(b => matchName(b.name, book));
+    return hit ? Number(hit.balance) || 0 : null;
+  }
+
+  /** Gruppiert die Quoten eines Spiels je Markt und Linie. Nur vollständige Märkte kommen durch. */
+  function buildGroups(ev, cfg) {
+    const want = new Set(cfg.markets);
+    const map = new Map();
+    for (const bk of ev.bookmakers || []) {
+      if (cfg.bookFilter && !cfg.bookFilter(bk)) continue;
+      for (const m of bk.markets || []) {
+        if (!want.has(m.key)) continue;
+        const lines = new Map();
+        for (const o of m.outcomes || []) {
+          const price = Number(o.price);
+          if (!(price > 1)) continue;
+          let line = null;
+          if (m.key === 'totals') line = o.point;
+          else if (m.key === 'spreads') line = (o.name === ev.home_team) ? o.point : -o.point;
+          if ((m.key === 'totals' || m.key === 'spreads') && typeof line !== 'number') continue;
+          const lk = line === null ? '' : String(line);
+          if (!lines.has(lk)) lines.set(lk, { line, prices: {} });
+          lines.get(lk).prices[o.name] = price;
+        }
+        for (const [lk, L] of lines) {
+          const gk = m.key + '|' + lk;
+          if (!map.has(gk)) map.set(gk, { market: m.key, line: L.line, rows: [] });
+          map.get(gk).rows.push({ key: bk.key, title: bk.title, updated: m.last_update || bk.last_update, prices: L.prices });
+        }
+      }
+    }
+    const out = [];
+    for (const g of map.values()) {
+      let names;
+      if (g.market === 'h2h') {
+        const three = g.rows.some(r => 'Draw' in r.prices);
+        names = three ? [ev.home_team, 'Draw', ev.away_team] : [ev.home_team, ev.away_team];
+      } else if (g.market === 'totals') names = ['Over', 'Under'];
+      else names = [ev.home_team, ev.away_team];
+      const rows = g.rows.filter(r => names.every(n => r.prices[n] > 1));
+      if (!rows.length) continue;
+      out.push({ id: ev.id + '|' + g.market + '|' + (g.line === null ? '' : g.line), eventId: ev.id, market: g.market, line: g.line, names, rows });
+    }
+    const order = { h2h: 0, totals: 1, spreads: 2 };
+    out.sort((a, b) => (order[a.market] - order[b.market]) || ((a.line || 0) - (b.line || 0)));
+    return out;
+  }
+
+  const upcoming = (ev, cfg) => cfg.includeLive || new Date(ev.commence_time).getTime() > (cfg.now || Date.now());
+
+  function findArbs(events, cfg) {
+    const out = [];
+    for (const ev of events) {
+      if (!upcoming(ev, cfg)) continue;
+      for (const g of buildGroups(ev, cfg)) {
+        if (g.rows.length < 2) continue;
+        const best = g.names.map(n => {
+          let b = null;
+          for (const r of g.rows) if (!b || r.prices[n] > b.price) b = { name: n, price: r.prices[n], key: r.key, title: r.title, updated: r.updated };
+          return b;
+        });
+        const s = sum(best.map(b => 1 / b.price));
+        if (s < 1 - 1e-9) {
+          const margin = 1 / s - 1;
+          if (margin >= (cfg.minMargin || 0)) out.push({ id: g.id, eventId: ev.id, market: g.market, line: g.line, names: g.names, best, rows: g.rows, sum: s, margin });
+        }
+      }
+    }
+    return out.sort((a, b) => b.margin - a.margin);
+  }
+
+  /** Value: Quote gegen faire Wahrscheinlichkeit aus Pinnacle (Marge entfernt) oder Marktkonsens. */
+  function findValue(events, cfg) {
+    const out = [];
+    const minConsensus = cfg.minConsensus || 4;
+    for (const ev of events) {
+      if (!upcoming(ev, cfg)) continue;
+      for (const g of buildGroups(ev, cfg)) {
+        const pin = g.rows.find(isPinnacle);
+        const perBook = new Map(g.rows.map(r => [r, devig(g.names.map(n => r.prices[n]))]));
+        for (const r of g.rows) {
+          let probs, method, nref;
+          if (pin) {
+            if (r === pin) continue;
+            probs = perBook.get(pin); method = 'pinnacle'; nref = 1;
+          } else {
+            const others = g.rows.filter(x => x !== r);
+            if (others.length < minConsensus - 1) continue;
+            const med = g.names.map((_, i) => median(others.map(o => perBook.get(o)[i])));
+            const s = sum(med);
+            probs = med.map(x => x / s); method = 'consensus'; nref = others.length;
+          }
+          g.names.forEach((n, i) => {
+            const price = r.prices[n];
+            const edge = price * probs[i] - 1;
+            if (edge >= cfg.minEdge && edge <= (cfg.maxEdge || 1) && price >= (cfg.minOdds || 1.01) && price <= (cfg.maxOdds || 1000)) {
+              out.push({
+                id: g.id + '|' + n + '|' + r.key, groupId: g.id, eventId: ev.id, market: g.market, line: g.line, names: g.names,
+                outcome: n, price, key: r.key, title: r.title, updated: r.updated, p: probs[i], fair: 1 / probs[i], edge,
+                kelly: kelly(probs[i], price), method, nref, rows: g.rows
+              });
+            }
+          });
+        }
+      }
+    }
+    return out.sort((a, b) => b.edge - a.edge);
+  }
+
+  function kelly(p, o) { const f = (p * o - 1) / (o - 1); return f > 0 ? f : 0; }
+  function roundStake(s) { return s >= 10 ? Math.round(s) : Math.round(s * 2) / 2; }
+  function kellyStake(bankroll, f, fraction, maxPct, balance) {
+    if (!(bankroll > 0)) return null;
+    let s = bankroll * f * fraction;
+    s = Math.min(s, bankroll * maxPct);
+    if (balance != null) s = Math.min(s, balance);
+    return Math.max(0, s);
+  }
+  function arbStakes(total, best, round) {
+    const s = sum(best.map(b => 1 / b.price));
+    const ideal = best.map(b => total * (1 / b.price) / s);
+    const stakes = round ? ideal.map(x => Math.max(0, Math.round(x))) : ideal;
+    const spent = sum(stakes);
+    const payouts = stakes.map((x, i) => x * best[i].price);
+    const minPay = Math.min(...payouts);
+    return { stakes, spent, payouts, minPay, profit: minPay - spent, roi: spent > 0 ? (minPay - spent) / spent : 0 };
+  }
+  function maxTotal(best, balOf) {
+    const s = sum(best.map(b => 1 / b.price));
+    let m = Infinity, unknown = false;
+    for (const b of best) {
+      const bal = balOf(b);
+      if (bal == null) { unknown = true; continue; }
+      m = Math.min(m, bal * s * b.price);
+    }
+    return { max: Number.isFinite(m) ? m : null, unknown };
+  }
+  return { norm, devig, median, matchName, balanceOf, buildGroups, findArbs, findValue, kelly, kellyStake, roundStake, arbStakes, maxTotal };
+})();
+/*LOGIC-END*/
+</script>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- Speicher ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('nexus.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('nexus.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem('nexus.' + k); } catch (e) {} }
+};
+const DEFAULTS = {
+  apiKey: '', regions: ['eu', 'uk'], markets: ['h2h'], days: 3, sports: [], includeLive: false, autoMin: 0,
+  minArb: 0, minEdge: 3, kelly: 0.25, maxStake: 5, bankroll: 0, onlyMine: false, roundStakes: true, arbTotal: 100,
+  tg: { token: '', chat: '', enabled: false, arb: true, value: true }
+};
+const merge = (d, s) => { const o = Array.isArray(d) ? [...d] : { ...d }; for (const k in (s || {})) { o[k] = (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) ? merge(d[k], s[k]) : s[k]; } return o; };
+
+const S = {
+  tab: 'chancen', seg: 'arb', sheet: null, scanning: false, progress: null,
+  settings: merge(DEFAULTS, store.get('settings', {})),
+  balances: store.get('balances', []),
+  sports: store.get('sports', []),
+  scan: store.get('scan', null),
+  quota: store.get('quota', null),
+  analysis: { arbs: [], values: [], books: [] },
+  evById: new Map(), evCache: new Map(), evq: '', evLeague: 'all', leagueQ: '', keyStatus: '', tgStatus: ''
+};
+const saveSettings = () => store.set('settings', S.settings);
+const saveBalances = () => store.set('balances', S.balances);
+
+/* ---------- Formatierung ---------- */
+const nfs = {};
+const nf = (v, d = 2) => (nfs[d] || (nfs[d] = new Intl.NumberFormat('de-AT', { minimumFractionDigits: d, maximumFractionDigits: d }))).format(v);
+const eur = v => nf(v, Math.abs(v - Math.round(v)) < 0.005 ? 0 : 2) + ' €';
+const eurc = v => nf(v, 2) + ' €';
+const pct = (v, d = 2) => nf(v * 100, d) + ' %';
+const odds = o => nf(o, 2);
+const parseNum = s => {
+  let t = String(s).trim().replace(/\s/g, '');
+  if (t.includes(',') && t.includes('.')) t = t.replace(/\./g, '').replace(',', '.');
+  else t = t.replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : NaN;
+};
+const kickoff = iso => new Date(iso).toLocaleString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const until = iso => {
+  const m = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+  if (m <= 0) return 'läuft';
+  if (m < 60) return 'in ' + m + ' Min';
+  if (m < 48 * 60) return 'in ' + Math.floor(m / 60) + ' Std ' + (m % 60 ? (m % 60) + ' Min' : '');
+  return 'in ' + Math.round(m / 1440) + ' Tagen';
+};
+const agoMs = t => Date.now() - (typeof t === 'number' ? t : new Date(t).getTime());
+const ago = t => {
+  const m = Math.floor(agoMs(t) / 60000);
+  if (m < 1) return 'gerade eben';
+  if (m < 60) return 'vor ' + m + ' Min';
+  if (m < 1440) return 'vor ' + Math.floor(m / 60) + ' Std';
+  return 'vor ' + Math.floor(m / 1440) + ' Tagen';
+};
+
+/* ---------- Icons ---------- */
+const I = {
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="3" y="7.5" width="18" height="12" rx="3"/><path d="M16.5 13.5h1.5"/></svg>',
+  sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
+  scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>'
+};
+
+/* ---------- Labels ---------- */
+const GROUPS = { 'Soccer': 'Fußball', 'Ice Hockey': 'Eishockey', 'Mixed Martial Arts': 'MMA', 'Boxing': 'Boxen', 'Aussie Rules': 'Australian Football', 'Rugby League': 'Rugby League', 'Rugby Union': 'Rugby Union' };
+const grpName = g => GROUPS[g] || g;
+const mkLabel = (g) => g.market === 'h2h' ? (g.names.length === 3 ? 'Spielausgang (1X2)' : 'Sieger') : g.market === 'totals' ? 'Über/Unter ' + nf(g.line, 1) : 'Handicap ' + (g.line > 0 ? '+' : '') + nf(g.line, 1);
+const sign = v => (v > 0 ? '+' : '') + nf(v, 1);
+function outLabel(item, name, ev) {
+  if (item.market === 'h2h') return name === 'Draw' ? 'Unentschieden' : name;
+  if (item.market === 'totals') return (name === 'Over' ? 'Über ' : 'Unter ') + nf(item.line, 1);
+  const pt = name === ev.home_team ? item.line : -item.line;
+  return name + ' ' + sign(pt);
+}
+const evOf = id => S.evById.get(id);
+const evTitle = ev => ev ? esc(ev.home_team) + ' – ' + esc(ev.away_team) : '';
+
+/* ---------- Berechnung ---------- */
+const bankroll = () => { const s = S.balances.reduce((a, b) => a + (Number(b.balance) || 0), 0); return s > 0 ? s : (S.settings.bankroll || 0); };
+const balanceFor = b => Logic.balanceOf(S.balances, { key: b.key, title: b.title });
+const cost = () => S.settings.sports.length * S.settings.markets.length * S.settings.regions.length;
+
+function groupsOf(ev) {
+  if (!S.evCache.has(ev.id)) S.evCache.set(ev.id, Logic.buildGroups(ev, { markets: S.scan.params.markets }));
+  return S.evCache.get(ev.id);
+}
+function analyze() {
+  const sc = S.scan, st = S.settings;
+  S.evById = new Map(); S.evCache = new Map();
+  if (!sc) { S.analysis = { arbs: [], values: [], books: [] }; return; }
+  for (const ev of sc.events) S.evById.set(ev.id, ev);
+  const mine = S.balances;
+  const bookFilter = (st.onlyMine && mine.length) ? (b => mine.some(x => Logic.matchName(x.name, b))) : null;
+  const cfg = { markets: sc.params.markets, bookFilter, includeLive: st.includeLive, now: Date.now(), minMargin: Math.max(0, st.minArb) / 100, minEdge: Math.max(0, st.minEdge) / 100, maxEdge: 0.25, minOdds: 1.3, maxOdds: 8, minConsensus: 4 };
+  const arbs = Logic.findArbs(sc.events, cfg);
+  const values = Logic.findValue(sc.events, cfg);
+  const books = [...new Set(sc.events.flatMap(e => (e.bookmakers || []).map(b => b.title)))].sort((a, b) => a.localeCompare(b, 'de'));
+  S.analysis = { arbs, values, books };
+}
+
+/* ---------- API ---------- */
+const API = 'https://api.the-odds-api.com/v4';
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+function apiError(status, msg) {
+  if (status === 401) return /USAGE|credit|quota/i.test(msg) ? 'Dein Anfragen-Kontingent bei the-odds-api.com ist aufgebraucht.' : 'API-Schlüssel ungültig oder deaktiviert.';
+  if (status === 429) return 'Zu viele Anfragen in kurzer Zeit. Bitte einen Moment warten.';
+  if (status === 422) return 'Ein gewählter Markt oder eine Region ist für diese Liga nicht verfügbar.';
+  if (status === 404) return 'Liga nicht gefunden.';
+  return 'API-Fehler ' + status + (msg ? ': ' + msg : '');
+}
+async function api(path, params) {
+  const url = new URL(API + path);
+  url.searchParams.set('apiKey', S.settings.apiKey.trim());
+  for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
+  let res;
+  try { res = await fetch(url.toString()); }
+  catch (e) { const err = new Error('Keine Verbindung zur Odds-API. Prüfe dein Netz.'); err.fatal = true; throw err; }
+  const quota = { remaining: num(res.headers.get('x-requests-remaining')), used: num(res.headers.get('x-requests-used')) };
+  if (!res.ok) {
+    let msg = ''; try { msg = (await res.json()).message || ''; } catch (e) {}
+    const err = new Error(apiError(res.status, msg)); err.status = res.status; err.fatal = res.status === 401 || res.status === 429; throw err;
+  }
+  return { data: await res.json(), quota };
+}
+function setQuota(q) {
+  if (!q || (q.remaining == null && q.used == null)) return;
+  S.quota = { ...q, ts: Date.now() }; store.set('quota', S.quota);
+}
+const PREFERRED = ['soccer_austria_bundesliga', 'soccer_germany_bundesliga', 'soccer_epl', 'soccer_uefa_champs_league', 'soccer_uefa_europa_league', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_france_ligue_one'];
+async function loadSports() {
+  const { data, quota } = await api('/sports/');
+  setQuota(quota);
+  S.sports = data.filter(s => s.active && !/_winner$/.test(s.key)).map(s => ({ key: s.key, group: s.group, title: s.title }))
+    .sort((a, b) => grpName(a.group).localeCompare(grpName(b.group), 'de') || a.title.localeCompare(b.title, 'de'));
+  store.set('sports', S.sports);
+  const valid = new Set(S.sports.map(s => s.key));
+  S.settings.sports = S.settings.sports.filter(k => valid.has(k));
+  if (!S.settings.sports.length) S.settings.sports = PREFERRED.filter(k => valid.has(k));
+  saveSettings();
+  return data.length;
+}
+
+async function scan(auto) {
+  if (S.scanning) return;
+  const st = S.settings;
+  if (!st.apiKey.trim()) { if (!auto) { toast('Trage zuerst deinen API-Schlüssel ein.'); go('setup'); } return; }
+  if (!st.sports.length) { if (!auto) { toast('Wähle zuerst Ligen aus.'); openSheet({ type: 'leagues' }); } return; }
+  S.scanning = true; S.progress = { done: 0, total: st.sports.length, name: '' }; renderTop(); renderView();
+  const events = [], errors = [];
+  let remaining = null, used = null;
+  const to = new Date(Date.now() + st.days * 864e5).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const queue = [...st.sports];
+  const titleOf = k => (S.sports.find(s => s.key === k) || {}).title || k;
+  async function worker() {
+    while (queue.length) {
+      const key = queue.shift();
+      S.progress.name = titleOf(key);
+      try {
+        const { data, quota } = await api('/sports/' + encodeURIComponent(key) + '/odds/', { regions: st.regions.join(','), markets: st.markets.join(','), oddsFormat: 'decimal', dateFormat: 'iso', commenceTimeTo: to });
+        if (quota.remaining != null) remaining = remaining == null ? quota.remaining : Math.min(remaining, quota.remaining);
+        if (quota.used != null) used = used == null ? quota.used : Math.max(used, quota.used);
+        for (const ev of data) if (ev.bookmakers && ev.bookmakers.length) events.push({ id: ev.id, sport_key: ev.sport_key, sport_title: ev.sport_title || titleOf(key), commence_time: ev.commence_time, home_team: ev.home_team, away_team: ev.away_team, bookmakers: ev.bookmakers });
+      } catch (e) {
+        errors.push({ sport: titleOf(key), msg: e.message });
+        if (e.fatal) queue.length = 0;
+      }
+      S.progress.done++; renderTop();
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  S.scanning = false; S.progress = null;
+  if (remaining != null || used != null) setQuota({ remaining, used });
+  const ok = st.sports.length - errors.length > 0 || events.length > 0;
+  if (ok) {
+    events.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
+    S.scan = { ts: Date.now(), events, errors, cost: cost(), params: { regions: [...st.regions], markets: [...st.markets], days: st.days, sports: [...st.sports] } };
+    if (!store.set('scan', S.scan)) store.del('scan');
+    analyze();
+  } else {
+    S.scan = S.scan ? { ...S.scan, errors } : null;
+  }
+  render();
+  if (!ok) toast(errors[0] ? errors[0].msg : 'Scan fehlgeschlagen.');
+  else { toast(S.analysis.arbs.length + ' Arbitrage · ' + S.analysis.values.length + ' Value Bets'); notifyTelegram(); }
+}
+
+/* ---------- Telegram ---------- */
+async function tgSend(text) {
+  const tg = S.settings.tg;
+  const body = new URLSearchParams({ chat_id: tg.chat.trim(), text, parse_mode: 'HTML', disable_web_page_preview: 'true' });
+  let res;
+  try { res = await fetch('https://api.telegram.org/bot' + tg.token.trim() + '/sendMessage', { method: 'POST', body }); }
+  catch (e) { throw new Error('Telegram nicht erreichbar.'); }
+  let j = {}; try { j = await res.json(); } catch (e) {}
+  if (!res.ok || !j.ok) throw new Error(j.description || ('Telegram-Fehler ' + res.status));
+}
+function arbMsg(a) {
+  const ev = evOf(a.eventId); const r = Logic.arbStakes(S.settings.arbTotal, a.best, S.settings.roundStakes);
+  const legs = a.best.map((b, i) => '• ' + esc(outLabel(a, b.name, ev)) + ' @ ' + odds(b.price) + ' – ' + esc(b.title) + ' → ' + eur(r.stakes[i])).join('\n');
+  return '<b>NEXUS · Arbitrage +' + pct(a.margin) + '</b>\n' + esc(ev.home_team) + ' – ' + esc(ev.away_team) + '\n' + esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + '\n\n' + legs + '\n\nBei ' + eur(r.spent) + ' Einsatz: Gewinn ' + eurc(r.profit);
+}
+function valueMsg(v) {
+  const ev = evOf(v.eventId); const rec = stakeRec(v);
+  return '<b>NEXUS · Value +' + pct(v.edge, 1) + '</b>\n' + esc(ev.home_team) + ' – ' + esc(ev.away_team) + '\n' + esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + '\n\n' + esc(outLabel(v, v.outcome, ev)) + ' @ ' + odds(v.price) + ' – ' + esc(v.title) + '\nFair-Quote ' + odds(v.fair) + (v.method === 'pinnacle' ? ' (Pinnacle ohne Marge)' : ' (Marktkonsens, ' + v.nref + ' Buchmacher)') + (rec && rec.stake >= 1 ? '\nEmpfohlener Einsatz: ' + eur(rec.stake) : '');
+}
+async function notifyTelegram() {
+  const tg = S.settings.tg;
+  if (!tg.enabled || !tg.token.trim() || !tg.chat.trim()) return;
+  const seen = store.get('notified', {}); const now = Date.now();
+  for (const k of Object.keys(seen)) if (now - seen[k] > 48 * 36e5) delete seen[k];
+  const msgs = [];
+  if (tg.arb) for (const a of S.analysis.arbs.slice(0, 5)) { const k = 'a|' + a.id + '|' + Math.round(a.margin * 1000); if (!seen[k]) { seen[k] = now; msgs.push(arbMsg(a)); } }
+  if (tg.value) for (const v of S.analysis.values.slice(0, 5)) { const k = 'v|' + v.id + '|' + v.price; if (!seen[k]) { seen[k] = now; msgs.push(valueMsg(v)); } }
+  store.set('notified', seen);
+  let sent = 0;
+  for (const m of msgs.slice(0, 8)) { try { await tgSend(m); sent++; } catch (e) { toast('Telegram: ' + e.message); break; } }
+  if (sent) toast(sent + ' Telegram-Meldung' + (sent > 1 ? 'en' : '') + ' gesendet');
+}
+
+/* ---------- Stake-Empfehlung ---------- */
+function stakeRec(v) {
+  const B = bankroll(); if (!(B > 0)) return null;
+  const bal = balanceFor({ key: v.key, title: v.title });
+  const raw = Logic.kellyStake(B, v.kelly, S.settings.kelly, S.settings.maxStake / 100, bal);
+  return { stake: Logic.roundStake(raw), bal, B, capped: raw < B * v.kelly * S.settings.kelly - 1e-9 };
+}
+
+/* ---------- Rendering ---------- */
+const TABS = [['chancen', 'Chancen', I.bolt], ['spiele', 'Spiele', I.list], ['konten', 'Konten', I.wallet], ['setup', 'Setup', I.sliders]];
+const TITLES = { chancen: 'Chancen', spiele: 'Spiele', konten: 'Konten', setup: 'Einstellungen' };
+function renderNav() {
+  $('#nav').innerHTML = '<div class="brand"><i>N</i>NEXUS</div>' + TABS.map(t => '<button data-act="tab" data-v="' + t[0] + '" aria-current="' + (S.tab === t[0]) + '">' + t[2] + '<span>' + t[1] + '</span></button>').join('');
+}
+function statusLine() {
+  if (S.scanning && S.progress) return 'Scanne ' + esc(S.progress.name || '…') + ' (' + S.progress.done + '/' + S.progress.total + ')';
+  if (!S.settings.apiKey.trim()) return 'Nicht verbunden';
+  if (S.scan) return 'Stand ' + ago(S.scan.ts) + ' · ' + S.scan.events.length + ' Spiele · ' + S.analysis.books.length + ' Buchmacher';
+  return 'Noch kein Scan';
+}
+function renderTop() {
+  const t = S.tab; let extra = '', action = '';
+  if (t === 'chancen') {
+    action = '<button class="btn primary" data-act="scan" ' + (S.scanning ? 'disabled' : '') + '>' + '<span class="' + (S.scanning ? 'spin' : '') + '" style="display:flex">' + I.scan + '</span>' + (S.scanning ? 'Scan läuft' : 'Scan') + '</button>';
+    extra = '<div class="seg" role="tablist"><button role="tab" data-act="seg" data-v="arb" aria-selected="' + (S.seg === 'arb') + '">Arbitrage <i>' + S.analysis.arbs.length + '</i></button><button role="tab" data-act="seg" data-v="value" aria-selected="' + (S.seg === 'value') + '">Value Bets <i>' + S.analysis.values.length + '</i></button></div>';
+  }
+  const prog = S.scanning && S.progress ? '<div class="prog"><i style="width:' + Math.round(S.progress.done / S.progress.total * 100) + '%"></i></div>' : '';
+  $('#top').innerHTML = '<div class="wrap top-in"><div class="title-row"><div><h1>' + TITLES[t] + '</h1><p class="sub" id="status">' + (t === 'chancen' || t === 'spiele' ? statusLine() : '') + '</p></div>' + action + '</div>' + extra + prog + '</div>';
+}
+function render() { renderNav(); renderTop(); renderView(); }
+function renderView() {
+  const v = $('#view');
+  v.innerHTML = ({ chancen: viewChancen, spiele: viewSpiele, konten: viewKonten, setup: viewSetup })[S.tab]();
+}
+function go(tab) { S.tab = tab; render(); $('#main').scrollTop = 0; }
+
+const emptyState = (icon, title, text, btn) => '<div class="empty"><div class="glyph">' + icon + '</div><h2>' + title + '</h2><p>' + text + '</p>' + (btn || '') + '</div>';
+
+/* --- Chancen --- */
+function viewChancen() {
+  const st = S.settings;
+  if (!st.apiKey.trim()) return emptyState(I.bolt, 'Odds-API verbinden', 'NEXUS zeigt ausschließlich echte Live-Quoten von the-odds-api.com. Trage dafür deinen eigenen API-Schlüssel ein.', '<button class="btn primary" data-act="tab" data-v="setup">API-Schlüssel eintragen</button>');
+  const quota = '<div class="bar-info"><span>Anfragen übrig: <b class="mono">' + (S.quota && S.quota.remaining != null ? nf(S.quota.remaining, 0) : '–') + '</b> · Scan kostet <b class="mono">' + cost() + '</b></span>' +
+    '<label>Nur meine Konten<span class="sw"><input type="checkbox" data-set="onlyMine" ' + (st.onlyMine ? 'checked' : '') + '><span></span></span></label></div>';
+  if (!S.scan) return quota + emptyState(I.scan, 'Bereit zum Scannen', st.sports.length ? st.sports.length + ' Ligen sind gewählt. Ein Scan kostet ' + cost() + ' Anfragen.' : 'Wähle unter Einstellungen die Ligen, die NEXUS scannen soll.', st.sports.length ? '<button class="btn primary" data-act="scan">Jetzt scannen</button>' : '<button class="btn primary" data-act="tab" data-v="setup">Ligen wählen</button>');
+  const errs = S.scan.errors && S.scan.errors.length ? '<div class="note warn errs">' + S.scan.errors.slice(0, 4).map(e => esc(e.sport) + ': ' + esc(e.msg)).join('<br>') + '</div>' : '';
+  const stale = agoMs(S.scan.ts) > 15 * 60000 ? '<div class="note warn errs">Dieser Scan ist ' + ago(S.scan.ts).replace('vor ', '') + ' alt. Quoten ändern sich schnell, scanne neu, bevor du setzt.</div>' : '';
+  const list = S.seg === 'arb' ? S.analysis.arbs : S.analysis.values;
+  if (!list.length) {
+    const txt = S.seg === 'arb'
+      ? 'In ' + S.scan.events.length + ' Spielen von ' + S.analysis.books.length + ' Buchmachern gibt es gerade keine Quotenkombination mit garantiertem Gewinn.' + (st.onlyMine && S.balances.length ? ' Der Filter „Nur meine Konten“ ist aktiv.' : '')
+      : 'Kein Buchmacher liegt in ' + S.scan.events.length + ' Spielen mindestens ' + nf(st.minEdge, 1) + ' % über der fairen Quote.';
+    return quota + stale + errs + emptyState(I.bolt, S.seg === 'arb' ? 'Keine Arbitrage gefunden' : 'Keine Value Bets gefunden', txt, '');
+  }
+  return quota + stale + errs + '<div class="list">' + (S.seg === 'arb' ? list.map(arbCard) : list.map(valueCard)).join('') + '</div>';
+}
+function staleLegs(legs) { return legs.some(l => l.updated && agoMs(l.updated) > 10 * 60000); }
+function arbCard(a) {
+  const ev = evOf(a.eventId); if (!ev) return '';
+  const flags = [];
+  if (staleLegs(a.best)) flags.push('<span class="flag">Quote evtl. veraltet</span>');
+  if (a.margin > 0.08) flags.push('<span class="flag">Ungewöhnlich hoch – prüfen</span>');
+  if (S.balances.length) { const miss = a.best.filter(b => balanceFor(b) == null); if (miss.length) flags.push('<span class="flag">Kein Konto: ' + esc(miss.map(m => m.title).join(', ')) + '</span>'); else flags.push('<span class="flag ok">Alle Konten vorhanden</span>'); }
+  return '<button class="card" data-act="open" data-type="arb" data-id="' + esc(a.id) + '"><span class="card-top"><span class="badge">+' + pct(a.margin) + '</span><span class="meta">' + esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + '</span></span>' +
+    '<span class="teams">' + evTitle(ev) + '</span><span class="legs">' + a.best.map(b => '<span class="leg"><span class="leg-o">' + esc(outLabel(a, b.name, ev)) + '</span><span class="leg-b">' + esc(b.title) + '</span><span class="leg-p">' + odds(b.price) + '</span></span>').join('') + '</span>' +
+    (flags.length ? '<span class="flags">' + flags.join('') + '</span>' : '') + '</button>';
+}
+function valueCard(v) {
+  const ev = evOf(v.eventId); if (!ev) return '';
+  const rec = stakeRec(v);
+  const flags = [];
+  if (v.updated && agoMs(v.updated) > 10 * 60000) flags.push('<span class="flag">Quote evtl. veraltet</span>');
+  if (v.edge > 0.12) flags.push('<span class="flag">Ungewöhnlich hoch – prüfen</span>');
+  if (S.balances.length && balanceFor(v) == null) flags.push('<span class="flag">Kein Konto bei ' + esc(v.title) + '</span>');
+  return '<button class="card" data-act="open" data-type="value" data-id="' + esc(v.id) + '"><span class="card-top"><span class="badge acc">+' + pct(v.edge, 1) + '</span><span class="meta">' + esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + '</span></span>' +
+    '<span class="teams">' + evTitle(ev) + '</span>' +
+    '<span class="legs"><span class="leg"><span class="leg-o">' + esc(outLabel(v, v.outcome, ev)) + '</span><span class="leg-b">' + esc(v.title) + '</span><span class="leg-p">' + odds(v.price) + '</span></span></span>' +
+    '<span class="kv"><span>Fair-Quote <b class="mono">' + odds(v.fair) + '</b> · ' + (v.method === 'pinnacle' ? 'Pinnacle' : 'Konsens ' + v.nref) + '</span><span>' + (rec ? (rec.stake >= 1 ? 'Einsatz <b class="mono">' + eur(rec.stake) + '</b>' : 'Einsatz unter 1 €') : 'Kein Guthaben hinterlegt') + '</span></span>' +
+    (flags.length ? '<span class="flags">' + flags.join('') + '</span>' : '') + '</button>';
+}
+
+/* --- Spiele --- */
+function evSummary(ev) {
+  const gs = groupsOf(ev); const g = gs.find(x => x.market === 'h2h') || gs[0];
+  if (!g) return '';
+  const cells = g.names.map(n => { let b = null; for (const r of g.rows) if (!b || r.prices[n] > b.p) b = { p: r.prices[n], t: r.title }; return '<span style="display:block;min-width:0"><span class="mono" style="display:block;font-weight:750;font-size:17px">' + odds(b.p) + '</span><span style="display:block;font-size:12px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(outLabel(g, n, ev)) + '</span><span style="display:block;font-size:11.5px;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(b.t) + '</span></span>'; }).join('');
+  return '<span style="display:grid!important;grid-template-columns:repeat(' + g.names.length + ',minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px solid var(--line)">' + cells + '</span>';
+}
+function eventList() {
+  const q = S.evq.trim().toLowerCase();
+  const now = Date.now();
+  const evs = S.scan.events.filter(e => (S.settings.includeLive || new Date(e.commence_time).getTime() > now) && (S.evLeague === 'all' || e.sport_key === S.evLeague) && (!q || (e.home_team + ' ' + e.away_team).toLowerCase().includes(q)));
+  if (!evs.length) return '<div class="empty"><p>Keine Spiele für diesen Filter.</p></div>';
+  return evs.slice(0, 120).map(ev => '<button class="card" data-act="open" data-type="event" data-id="' + esc(ev.id) + '"><span class="card-top"><span class="meta" style="text-align:left">' + esc(ev.sport_title) + '</span><span class="meta">' + esc(kickoff(ev.commence_time)) + ' · ' + until(ev.commence_time) + '</span></span><span class="teams">' + evTitle(ev) + '</span>' + evSummary(ev) + '<span class="kv"><span>' + ev.bookmakers.length + ' Buchmacher</span><span>Alle Quoten ansehen</span></span></button>').join('') + (evs.length > 120 ? '<p class="hint">Es werden die nächsten 120 von ' + evs.length + ' Spielen angezeigt. Nutze die Suche oder einen Liga-Filter.</p>' : '');
+}
+function viewSpiele() {
+  if (!S.settings.apiKey.trim()) return emptyState(I.list, 'Noch keine Daten', 'Verbinde zuerst deine Odds-API und starte einen Scan.', '<button class="btn primary" data-act="tab" data-v="setup">Zu den Einstellungen</button>');
+  if (!S.scan) return emptyState(I.list, 'Noch keine Daten', 'Starte unter „Chancen“ einen Scan, dann erscheinen hier alle Spiele mit den besten Quoten.', '<button class="btn primary" data-act="scan">Jetzt scannen</button>');
+  const leagues = [...new Map(S.scan.events.map(e => [e.sport_key, e.sport_title])).entries()];
+  return '<input class="field" id="evq" data-live="evq" type="search" placeholder="Team suchen" autocomplete="off" autocapitalize="off" value="' + esc(S.evq) + '" style="margin-bottom:12px">' +
+    '<div class="chips" id="evChips">' + chipsHTML(leagues) + '</div><div class="list" id="evList">' + eventList() + '</div>';
+}
+const chipsHTML = leagues => '<button class="chip" data-act="league" data-v="all" aria-pressed="' + (S.evLeague === 'all') + '">Alle</button>' + leagues.map(([k, t]) => '<button class="chip" data-act="league" data-v="' + esc(k) + '" aria-pressed="' + (S.evLeague === k) + '">' + esc(t) + '</button>').join('');
+
+/* --- Konten --- */
+function viewKonten() {
+  const total = S.balances.reduce((a, b) => a + (Number(b.balance) || 0), 0);
+  const rows = S.balances.map(b => {
+    const hit = S.analysis.books.find(t => Logic.matchName(b.name, { key: t, title: t }));
+    return '<div class="acct"><div style="min-width:0"><div class="nm">' + esc(b.name) + '</div><div class="st">' + (S.scan ? (hit ? 'In den Quoten gefunden: ' + esc(hit) : 'Nicht in den aktuellen Quoten') : 'Noch kein Scan') + '</div></div>' +
+      '<input class="field" inputmode="decimal" data-bal="' + esc(b.id) + '" value="' + esc(String(b.balance).replace('.', ',')) + '" aria-label="Guthaben ' + esc(b.name) + '"><button class="icon-btn" data-act="delbal" data-id="' + esc(b.id) + '" aria-label="' + esc(b.name) + ' entfernen">' + I.trash + '</button></div>';
+  }).join('');
+  const dl = '<datalist id="bookList">' + S.analysis.books.map(b => '<option value="' + esc(b) + '">').join('') + '</datalist>';
+  return '<div class="stat"><div><small>Gesamtguthaben</small><b class="mono">' + eur(total) + '</b></div><div><small>Konten</small><b class="mono">' + S.balances.length + '</b></div><div><small>Kelly-Bankroll</small><b class="mono">' + eur(bankroll()) + '</b></div></div>' +
+    '<div class="panel">' + (rows || '<div class="row"><div class="row-h" style="margin:0">Noch keine Konten. Trage deine Buchmacher und Guthaben ein, damit NEXUS Einsätze auf dein Kapital begrenzt und Chancen auf deine Konten filtert.</div></div>') +
+    '<form class="addrow" id="addForm" autocomplete="off"><input class="field" id="newName" list="bookList" placeholder="Buchmacher" autocapitalize="words" enterkeyhint="next"><input class="field" id="newBal" inputmode="decimal" placeholder="Guthaben €" enterkeyhint="done"><button class="btn primary" type="submit">Hinzufügen</button></form></div>' + dl +
+    '<p class="hint">Guthaben liegen nur auf diesem Gerät. Ohne Konten nutzt NEXUS die Bankroll aus den Einstellungen.</p>';
+}
+
+/* --- Setup --- */
+const sw = (key, on) => '<label class="sw"><input type="checkbox" data-set="' + key + '" ' + (on ? 'checked' : '') + '><span></span></label>';
+const rowS = (t, ctrl, h, stack) => '<div class="row' + (stack ? ' stack' : '') + '"><div class="row-l"><div class="row-t">' + t + '</div>' + (h ? '<div class="row-h">' + h + '</div>' : '') + '</div><div class="row-c">' + ctrl + '</div></div>';
+const numIn = (key, val, suffix) => '<input class="field" inputmode="decimal" data-set="' + key + '" data-num="1" value="' + esc(String(val).replace('.', ',')) + '" aria-label="' + esc(key) + '">' + (suffix ? '<span style="color:var(--fg2)">' + suffix + '</span>' : '');
+const selIn = (key, val, opts, num) => '<select class="field" data-set="' + key + '"' + (num ? ' data-num="1"' : '') + '>' + opts.map(o => '<option value="' + o[0] + '" ' + (String(o[0]) === String(val) ? 'selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+const chipRow = (group, items, sel) => '<div class="chips" style="margin:0;padding:0 0 2px">' + items.map(i => '<button class="chip" data-act="chip" data-g="' + group + '" data-v="' + i[0] + '" aria-pressed="' + sel.includes(i[0]) + '">' + i[1] + '</button>').join('') + '</div>';
+function viewSetup() {
+  const st = S.settings, tg = st.tg;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone;
+  return (ios ? '<div class="note" style="margin-bottom:20px">Für die App-Ansicht: In Safari auf Teilen tippen und „Zum Home-Bildschirm“ wählen.</div>' : '') +
+    '<div class="group"><h3>Datenquelle</h3><div class="panel">' +
+    rowS('API-Schlüssel', '<input class="field" style="width:100%;text-align:left" id="apiKey" type="password" data-set="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="the-odds-api.com Schlüssel" value="' + esc(st.apiKey) + '">', 'Dein eigener Schlüssel von the-odds-api.com. Er wird nur auf diesem Gerät gespeichert.', true) +
+    rowS('Verbindung prüfen', '<button class="btn small" data-act="testkey">Testen</button>', '<span id="keyStatus">' + esc(S.keyStatus || (S.quota && S.quota.remaining != null ? 'Zuletzt: ' + nf(S.quota.remaining, 0) + ' Anfragen übrig' : '')) + '</span>') +
+    '</div></div>' +
+    '<div class="group"><h3>Scan</h3><div class="panel">' +
+    rowS('Ligen', '<button class="btn small" data-act="leagues">' + st.sports.length + ' gewählt</button>', 'Jede Liga kostet pro Region und Markt eine Anfrage.') +
+    rowS('Regionen', '', null, true).replace('<div class="row-c"></div>', '<div class="row-c" style="display:block">' + chipRow('regions', [['eu', 'EU'], ['uk', 'UK'], ['us', 'US'], ['au', 'AU']], st.regions) + '</div>') +
+    rowS('Märkte', '', null, true).replace('<div class="row-c"></div>', '<div class="row-c" style="display:block">' + chipRow('markets', [['h2h', 'Sieger'], ['totals', 'Über/Unter'], ['spreads', 'Handicap']], st.markets) + '</div>') +
+    rowS('Zeitraum', selIn('days', st.days, [[1, '1 Tag'], [2, '2 Tage'], [3, '3 Tage'], [7, '7 Tage'], [14, '14 Tage']], true), 'Spiele, die in diesem Zeitraum beginnen.') +
+    rowS('Live-Spiele', sw('includeLive', st.includeLive), 'Läuft ein Spiel schon, ändern sich Quoten im Sekundentakt. Standard: aus.') +
+    rowS('Auto-Scan', selIn('autoMin', st.autoMin, [[0, 'Aus'], [5, 'alle 5 Min'], [10, 'alle 10 Min'], [15, 'alle 15 Min'], [30, 'alle 30 Min']], true), 'Nur solange NEXUS geöffnet ist. Verbraucht Anfragen.') +
+    rowS('Kosten pro Scan', '<b class="mono" id="costEst">' + cost() + '</b>', 'Anfragen = Ligen × Märkte × Regionen') +
+    '</div></div>' +
+    '<div class="group"><h3>Schwellen &amp; Einsatz</h3><div class="panel">' +
+    rowS('Min. Arbitrage-Marge', numIn('minArb', st.minArb, '%'), 'Garantierter Gewinn in Prozent des Einsatzes.') +
+    rowS('Min. Value-Vorteil', numIn('minEdge', st.minEdge, '%'), 'Wie weit die Quote über der fairen Quote liegen muss.') +
+    rowS('Kelly-Anteil', selIn('kelly', st.kelly, [[0.1, '10 %'], [0.25, '25 % (Viertel)'], [0.5, '50 % (Halb)'], [1, '100 % (Voll)']], true), 'Ein Bruchteil des Kelly-Einsatzes senkt das Risiko.') +
+    rowS('Max. Einsatz', numIn('maxStake', st.maxStake, '%'), 'Obergrenze pro Wette in Prozent der Bankroll.') +
+    rowS('Bankroll ohne Konten', numIn('bankroll', st.bankroll || 0, '€'), 'Wird genutzt, wenn unter Konten kein Guthaben steht.') +
+    rowS('Auf ganze Euro runden', sw('roundStakes', st.roundStakes), 'Für Arbitrage-Einsätze.') +
+    '</div></div>' +
+    '<div class="group"><h3>Telegram</h3><div class="panel">' +
+    rowS('Meldungen', sw('tg.enabled', tg.enabled), 'Nach jedem Scan, nur während NEXUS geöffnet ist. iOS pausiert Web-Apps im Hintergrund.') +
+    rowS('Bot-Token', '<input class="field" style="width:100%;text-align:left" type="password" data-set="tg.token" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="123456:ABC…" value="' + esc(tg.token) + '">', null, true) +
+    rowS('Chat-ID', '<input class="field" style="width:100%;text-align:left" inputmode="numeric" data-set="tg.chat" autocomplete="off" placeholder="z. B. 123456789" value="' + esc(tg.chat) + '">', null, true) +
+    rowS('Arbitrage melden', sw('tg.arb', tg.arb)) + rowS('Value Bets melden', sw('tg.value', tg.value)) +
+    rowS('Testnachricht', '<button class="btn small" data-act="testtg">Senden</button>', '<span id="tgStatus">' + esc(S.tgStatus) + '</span>') +
+    '</div></div>' +
+    '<div class="group"><h3>Daten</h3><div class="panel">' +
+    rowS('Gespeicherten Scan löschen', '<button class="btn small" data-act="clearscan">Löschen</button>') +
+    rowS('Alle lokalen Daten löschen', '<button class="btn small danger" data-act="resetall">Zurücksetzen</button>', 'Entfernt Schlüssel, Konten und Einstellungen von diesem Gerät.') +
+    '</div></div><p class="hint" style="text-align:center">Quoten stammen live von the-odds-api.com. Wetten ist mit Risiko verbunden. NEXUS ist kein Finanz- oder Anlagetipp.</p>';
+}
+
+/* --- Sheet --- */
+function arbCalcHTML(a, total) {
+  const ev = evOf(a.eventId);
+  const r = Logic.arbStakes(total, a.best, S.settings.roundStakes);
+  const mt = Logic.maxTotal(a.best, b => balanceFor(b));
+  const legs = a.best.map((b, i) => {
+    const bal = balanceFor(b); const over = bal != null && r.stakes[i] > bal + 1e-9;
+    return '<div class="leg-card"><div class="l1">' + esc(outLabel(a, b.name, ev)) + '</div><div class="stake">' + eur(r.stakes[i]) + '</div>' +
+      '<div class="l2">' + esc(b.title) + ' · ' + (b.updated ? ago(b.updated) : '') + '</div><div class="r2">@ ' + odds(b.price) + ' → ' + eur(r.payouts[i]) + '</div>' +
+      (bal != null ? '<div class="l2" style="grid-column:1/-1;' + (over ? 'color:var(--neg);font-weight:650' : '') + '">' + (over ? 'Guthaben reicht nicht: nur ' + eur(bal) : 'Guthaben ' + eur(bal)) + '</div>' : (S.balances.length ? '<div class="l2" style="grid-column:1/-1;color:var(--warn)">Kein Konto hinterlegt</div>' : '')) + '</div>';
+  }).join('');
+  const ok = r.profit > 0;
+  return '<div class="hero"><div><small>Garantierter Gewinn</small><div class="big' + (ok ? '' : ' neg') + '">' + (r.profit >= 0 ? '+' : '') + eurc(r.profit) + '</div></div><div style="text-align:right"><small>Rendite</small><div class="mono" style="font-weight:700;font-size:18px">' + pct(r.roi) + '</div><small>Einsatz ' + eur(r.spent) + '</small></div></div>' +
+    (!ok ? '<div class="note warn">Durch das Runden bleibt kein Gewinn. Wähle einen höheren Gesamteinsatz oder schalte das Runden aus.</div>' : '') +
+    legs +
+    (mt.max != null ? '<div class="note">Mit deinen Guthaben ist ein Gesamteinsatz bis ' + eur(Math.floor(mt.max)) + ' möglich' + (mt.unknown ? ' (für Buchmacher ohne Konto nicht berücksichtigt)' : '') + '.</div>' : '');
+}
+function sheetArb(a) {
+  const ev = evOf(a.eventId);
+  const body = '<div><label class="sec-t" for="arbTotal">Gesamteinsatz in €</label><input class="field" id="arbTotal" data-live="arbTotal" inputmode="decimal" value="' + esc(String(S.settings.arbTotal).replace('.', ',')) + '" style="margin-top:8px"></div><div id="arbCalc" style="display:flex;flex-direction:column;gap:16px">' + arbCalcHTML(a, S.settings.arbTotal) + '</div>' +
+    (staleLegs(a.best) ? '<div class="note warn">Mindestens eine Quote ist älter als 10 Minuten. Prüfe sie beim Buchmacher, bevor du setzt.</div>' : '') +
+    '<div class="sec-t">Alle Quoten</div>' + oddsTable(a, ev);
+  return { title: evTitle(ev), sub: esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + ' · ' + mkLabel(a), body };
+}
+function sheetValue(v) {
+  const ev = evOf(v.eventId); const rec = stakeRec(v);
+  const kfull = v.kelly, kf = kfull * S.settings.kelly;
+  const comp = [...v.rows].sort((x, y) => y.prices[v.outcome] - x.prices[v.outcome]);
+  const body = '<div class="hero"><div><small>Vorteil gegenüber fairer Quote</small><div class="big">+' + pct(v.edge, 1) + '</div></div><div style="text-align:right"><small>' + esc(outLabel(v, v.outcome, ev)) + '</small><div class="mono" style="font-weight:700;font-size:18px">@ ' + odds(v.price) + '</div><small>' + esc(v.title) + '</small></div></div>' +
+    '<div class="grid2"><div><small>Faire Quote</small><b>' + odds(v.fair) + '</b></div><div><small>Gewinnchance (fair)</small><b>' + pct(v.p, 1) + '</b></div><div><small>Erwarteter Gewinn je 100 €</small><b>' + eur(v.edge * 100) + '</b></div><div><small>Kelly voll / gewählt</small><b>' + pct(kfull, 1) + ' / ' + pct(kf, 1) + '</b></div></div>' +
+    (rec ? '<div class="hero"><div><small>Empfohlener Einsatz</small><div class="big" style="color:var(--accent)">' + (rec.stake >= 1 ? eur(rec.stake) : 'unter 1 €') + '</div></div><div style="text-align:right"><small>Bankroll ' + eur(rec.B) + '</small><br><small>' + (rec.bal != null ? 'Guthaben ' + esc(v.title) + ' ' + eur(rec.bal) : 'Kein Konto bei ' + esc(v.title)) + '</small></div></div>' + (rec.capped ? '<div class="note">Der Einsatz ist durch deine Obergrenze oder dein Guthaben begrenzt.</div>' : '') : '<div class="note">Hinterlege unter Konten dein Guthaben oder lege in den Einstellungen eine Bankroll fest, dann berechnet NEXUS den Kelly-Einsatz.</div>') +
+    '<div class="note">Referenz: ' + (v.method === 'pinnacle' ? 'Pinnacle-Quoten, Buchmachermarge anteilig entfernt.' : 'Median der Wahrscheinlichkeiten von ' + v.nref + ' anderen Buchmachern (ohne Marge). Ohne Pinnacle ist das eine Schätzung.') + '</div>' +
+    (v.updated && agoMs(v.updated) > 10 * 60000 ? '<div class="note warn">Die Quote ist älter als 10 Minuten. Prüfe sie beim Buchmacher.</div>' : '') +
+    '<div class="sec-t">Alle Quoten</div>' + oddsTable(v, ev, v.key);
+  return { title: evTitle(ev), sub: esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + ' · ' + mkLabel(v), body };
+}
+function oddsTable(g, ev, hiKey) {
+  const names = g.names;
+  const best = names.map(n => Math.max(...g.rows.map(r => r.prices[n])));
+  const rows = [...g.rows].sort((a, b) => a.title.localeCompare(b.title, 'de'));
+  const head = '<tr><th>Buchmacher</th>' + names.map(n => '<th title="' + esc(outLabel(g, n, ev)) + '">' + esc(outLabel(g, n, ev)) + '</th>').join('') + '<th>Marge</th></tr>';
+  const body = rows.map(r => {
+    const ov = names.reduce((a, n) => a + 1 / r.prices[n], 0) - 1;
+    return '<tr><td' + (hiKey === r.key ? ' style="color:var(--accent);font-weight:750"' : '') + '>' + esc(r.title) + '</td>' + names.map((n, i) => '<td class="' + (r.prices[n] === best[i] ? 'best' : 'mono') + '">' + odds(r.prices[n]) + '</td>').join('') + '<td class="mono" style="color:var(--fg2)">' + pct(ov, 1) + '</td></tr>';
+  }).join('');
+  return '<div class="tbl-wrap"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+}
+function sheetEvent(ev) {
+  const gs = groupsOf(ev);
+  const body = gs.length ? gs.map(g => '<div style="display:flex;flex-direction:column;gap:8px"><div class="sec-t">' + mkLabel(g) + '</div>' + oddsTable(g, ev) + '</div>').join('') : '<div class="note">Für dieses Spiel liegen keine vollständigen Quoten vor.</div>';
+  return { title: evTitle(ev), sub: esc(ev.sport_title) + ' · ' + esc(kickoff(ev.commence_time)) + ' · ' + until(ev.commence_time), body: body + '<p class="hint">Hervorgehoben sind die jeweils besten Quoten. Stand der Scan-Daten: ' + ago(S.scan.ts) + '.</p>' };
+}
+function leagueListHTML() {
+  const q = S.leagueQ.trim().toLowerCase(); const sel = new Set(S.settings.sports);
+  const items = S.sports.filter(s => !q || (s.title + ' ' + s.group).toLowerCase().includes(q));
+  if (!S.sports.length) return '<div class="note">Noch keine Ligen geladen. Prüfe unter Einstellungen die Verbindung zur Odds-API.</div>';
+  let last = '', out = '';
+  for (const s of items) {
+    if (s.group !== last) { if (last) out += '</div>'; out += '<div class="sport-grp">' + esc(grpName(s.group)) + '</div><div class="panel">'; last = s.group; }
+    out += '<button class="sport" data-act="sport" data-v="' + esc(s.key) + '" aria-pressed="' + sel.has(s.key) + '"><span>' + esc(s.title) + '</span><span class="ck">' + I.check + '</span></button>';
+  }
+  return out + (last ? '</div>' : '');
+}
+let sheetEl = null;
+function openSheet(o) { S.sheet = o; renderSheet(); }
+function renderSheet() {
+  const root = $('#sheetRoot'); const sh = S.sheet;
+  if (!sh) { root.className = ''; root.innerHTML = ''; return; }
+  let d, foot = '';
+  if (sh.type === 'arb') { const a = S.analysis.arbs.find(x => x.id === sh.id); if (!a) { S.sheet = null; return; } d = sheetArb(a); }
+  else if (sh.type === 'value') { const v = S.analysis.values.find(x => x.id === sh.id); if (!v) { S.sheet = null; return; } d = sheetValue(v); }
+  else if (sh.type === 'event') { const ev = evOf(sh.id); if (!ev) { S.sheet = null; return; } d = sheetEvent(ev); }
+  else { d = { title: 'Ligen wählen', sub: '<span id="leagueCount"></span>', body: '<input class="field" id="leagueQ" data-live="leagueQ" type="search" placeholder="Liga suchen" autocomplete="off" value="' + esc(S.leagueQ) + '"><div id="leagueList">' + leagueListHTML() + '</div>' }; foot = '<div class="sheet-foot"><button class="btn primary" style="width:100%" data-act="close">Fertig</button></div>'; }
+  root.innerHTML = '<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(d.title.replace(/<[^>]*>/g, '')) + '"><div class="grab"><span class="bar"></span></div><div class="sheet-head"><div style="min-width:0"><h2>' + d.title + '</h2><p>' + d.sub + '</p></div><button class="icon-btn" data-act="close" aria-label="Schließen">' + I.x + '</button></div><div class="sheet-body">' + d.body + '</div>' + foot + '</div>';
+  sheetEl = root.querySelector('.sheet');
+  if (sh.type === 'leagues') updateLeagueCount();
+  root.className = '';
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (S.sheet) root.className = 'open'; }));
+}
+function closeSheet() {
+  const root = $('#sheetRoot'); if (!S.sheet) return;
+  const wasLeagues = S.sheet.type === 'leagues';
+  S.sheet = null; root.className = '';
+  setTimeout(() => { if (!S.sheet) root.innerHTML = ''; }, 360);
+  if (wasLeagues) renderView();
+}
+function updateLeagueCount() { const el = $('#leagueCount'); if (el) el.textContent = S.settings.sports.length + ' gewählt · Scan kostet ' + cost() + ' Anfragen'; }
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t);
+  clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3400);
+}
+
+/* ---------- Ereignisse ---------- */
+function setPath(o, path, v) { const p = path.split('.'); let t = o; while (p.length > 1) t = t[p.shift()]; t[p[0]] = v; }
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  if (act === 'tab') go(v);
+  else if (act === 'seg') { S.seg = v; renderTop(); renderView(); }
+  else if (act === 'scan') scan();
+  else if (act === 'open') {
+    if (el.dataset.type === 'arb' || el.dataset.type === 'value' || el.dataset.type === 'event') openSheet({ type: el.dataset.type, id: el.dataset.id });
+  }
+  else if (act === 'close') closeSheet();
+  else if (act === 'leagues') { S.leagueQ = ''; openSheet({ type: 'leagues' }); }
+  else if (act === 'sport') {
+    const set = new Set(S.settings.sports); set.has(v) ? set.delete(v) : set.add(v);
+    S.settings.sports = [...set]; saveSettings();
+    el.setAttribute('aria-pressed', set.has(v)); updateLeagueCount();
+  }
+  else if (act === 'league') { S.evLeague = v; $('#evChips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.v === v)); $('#evList').innerHTML = eventList(); }
+  else if (act === 'chip') {
+    const g = el.dataset.g, arr = new Set(S.settings[g]); arr.has(v) ? arr.delete(v) : arr.add(v);
+    if (!arr.size) { toast('Mindestens ein Eintrag muss aktiv bleiben.'); return; }
+    S.settings[g] = [...arr]; saveSettings(); renderView();
+  }
+  else if (act === 'delbal') { S.balances = S.balances.filter(b => b.id !== el.dataset.id); saveBalances(); analyze(); renderView(); renderTop(); }
+  else if (act === 'testkey') {
+    const st = $('#keyStatus'); S.settings.apiKey = ($('#apiKey').value || '').trim(); saveSettings();
+    if (!S.settings.apiKey) { st.textContent = 'Bitte zuerst einen Schlüssel eintragen.'; return; }
+    st.textContent = 'Prüfe …'; el.disabled = true;
+    try { const n = await loadSports(); S.keyStatus = 'Verbunden · ' + n + ' Sportarten · ' + (S.quota && S.quota.remaining != null ? nf(S.quota.remaining, 0) + ' Anfragen übrig' : 'Kontingent unbekannt'); toast('Verbunden. ' + S.settings.sports.length + ' Ligen vorausgewählt.'); }
+    catch (err) { S.keyStatus = err.message; }
+    if (S.tab === 'setup') renderView();
+  }
+  else if (act === 'testtg') {
+    const tg = S.settings.tg; const st = $('#tgStatus');
+    if (!tg.token.trim() || !tg.chat.trim()) { st.textContent = 'Token und Chat-ID eintragen.'; return; }
+    st.textContent = 'Sende …';
+    try { await tgSend('<b>NEXUS</b>\nTestnachricht: Die Verbindung steht.'); S.tgStatus = 'Gesendet.'; } catch (err) { S.tgStatus = err.message; }
+    const s2 = $('#tgStatus'); if (s2) s2.textContent = S.tgStatus;
+  }
+  else if (act === 'clearscan') { S.scan = null; store.del('scan'); analyze(); renderTop(); toast('Gespeicherter Scan gelöscht.'); }
+  else if (act === 'resetall') {
+    if (!confirm('Alle lokalen NEXUS-Daten von diesem Gerät löschen?')) return;
+    ['settings', 'balances', 'sports', 'scan', 'quota', 'notified'].forEach(store.del);
+    S.settings = merge(DEFAULTS, {}); S.balances = []; S.sports = []; S.scan = null; S.quota = null; S.keyStatus = ''; analyze(); render(); toast('Alle Daten gelöscht.');
+  }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.bal) {
+    const b = S.balances.find(x => x.id === el.dataset.bal); const n = parseNum(el.value);
+    if (b && Number.isFinite(n) && n >= 0) { b.balance = n; saveBalances(); } else if (b) el.value = String(b.balance).replace('.', ',');
+    renderTop(); return;
+  }
+  const key = el.dataset.set; if (!key) return;
+  let val;
+  if (el.type === 'checkbox') val = el.checked;
+  else if (el.dataset.num) { val = parseNum(el.value); if (!Number.isFinite(val) || val < 0) { toast('Bitte eine gültige Zahl eingeben.'); const cur = key.split('.').reduce((o, k) => o[k], S.settings); el.value = String(cur).replace('.', ','); return; } }
+  else val = el.value.trim();
+  setPath(S.settings, key, val); saveSettings();
+  if (['onlyMine', 'minArb', 'minEdge', 'includeLive', 'kelly', 'maxStake', 'bankroll', 'roundStakes'].includes(key)) { analyze(); renderTop(); if (S.tab === 'chancen' || el.type === 'checkbox') renderView(); }
+  else if (['days', 'autoMin', 'tg.enabled', 'tg.arb', 'tg.value'].includes(key)) { if (el.tagName === 'SELECT' || el.type === 'checkbox') renderView(); }
+  const ce = $('#costEst'); if (ce) ce.textContent = cost();
+});
+document.addEventListener('input', e => {
+  const el = e.target, k = el.dataset.live; if (!k) return;
+  if (k === 'evq') { S.evq = el.value; $('#evList').innerHTML = eventList(); }
+  else if (k === 'leagueQ') { S.leagueQ = el.value; $('#leagueList').innerHTML = leagueListHTML(); }
+  else if (k === 'arbTotal') {
+    const n = parseNum(el.value); const a = S.sheet && S.analysis.arbs.find(x => x.id === S.sheet.id);
+    if (a && Number.isFinite(n) && n > 0) { S.settings.arbTotal = n; saveSettings(); $('#arbCalc').innerHTML = arbCalcHTML(a, n); }
+  }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'addForm') return; e.preventDefault();
+  const name = $('#newName').value.trim(); const bal = parseNum($('#newBal').value || '0');
+  if (!name) { toast('Bitte einen Buchmacher eingeben.'); return; }
+  if (!Number.isFinite(bal) || bal < 0) { toast('Bitte ein gültiges Guthaben eingeben.'); return; }
+  if (S.balances.some(b => Logic.norm(b.name) === Logic.norm(name))) { toast('Dieses Konto gibt es schon.'); return; }
+  S.balances.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, balance: bal }); saveBalances(); analyze(); renderView(); renderTop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.sheet) closeSheet(); });
+/* Sheet per Wischen schließen (nur Handy-Layout) */
+let drag = null;
+document.addEventListener('touchstart', e => { if (!sheetEl || !e.target.closest('.grab') || matchMedia('(min-width:860px)').matches) return; drag = { y: e.touches[0].clientY, dy: 0 }; sheetEl.style.transition = 'none'; }, { passive: true });
+document.addEventListener('touchmove', e => { if (!drag) return; drag.dy = Math.max(0, e.touches[0].clientY - drag.y); sheetEl.style.transform = 'translateY(' + drag.dy + 'px)'; }, { passive: true });
+document.addEventListener('touchend', () => { if (!drag) return; const d = drag.dy; drag = null; sheetEl.style.transition = ''; sheetEl.style.transform = ''; if (d > 110) closeSheet(); });
+
+/* ---------- Service Worker (Offline-Hülle, Installation auf dem Home-Bildschirm) ---------- */
+function setupPWA() {
+  try { if (navigator.standalone) document.documentElement.classList.add('standalone'); } catch (e) {}
+  try {
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  } catch (e) {}
+}
+
+/* ---------- Start ---------- */
+function tick() {
+  if (document.hidden) return;
+  const s = $('#status'); if (s && !S.scanning && (S.tab === 'chancen' || S.tab === 'spiele')) s.innerHTML = statusLine();
+  const am = S.settings.autoMin;
+  if (am > 0 && !S.scanning && S.settings.apiKey.trim() && S.settings.sports.length && (!S.scan || agoMs(S.scan.ts) >= am * 60000)) scan(true);
+}
+setupPWA();
+analyze();
+render();
+setInterval(tick, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+if (S.settings.apiKey.trim() && !S.sports.length) loadSports().then(() => { if (S.tab === 'setup') renderView(); }).catch(() => {});
+})();
+</script>
+</body>
+</html>
