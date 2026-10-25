@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NexusShop – Beheizbare Weste mit 9 Heizzonen</title>
+<meta name="description" content="Die smarte Heizweste mit neun Heizzonen, USB-Anschluss und Baumwollfutter. Wärme auf Knopfdruck – 64,99 € inkl. MwSt.">
+<meta name="theme-color" content="#0c0a09">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="nav">
+  <a class="logo" href="#top">NEXUS<span>SHOP</span></a>
+  <nav>
+    <a href="#produkt">Produkt</a><a href="#zonen">Zonen</a><a href="#faq">FAQ</a>
+    <button class="btn small" data-buy>Kaufen</button>
+  </nav>
+</header>
+
+<main id="top">
+<section class="hero">
+  <canvas id="heat" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="eyebrow reveal">Winter 2026</p>
+    <h1 class="split" data-split>Wärme, die mitdenkt.</h1>
+    <p class="lead reveal">Neun Heizzonen. Ein Knopf. Kein Frieren mehr.</p>
+    <div class="reveal"><button class="btn" data-buy>Jetzt für 64,99 € sichern</button>
+    <p class="micro">inkl. MwSt., zzgl. <a href="legal/versand.html">Versand</a></p></div>
+  </div>
+  <div class="scroll-hint">scrollen</div>
+</section>
+
+<section class="story" id="story">
+  <div class="story-pin">
+    <p class="word" data-w="0">Kälte</p>
+    <p class="word" data-w="1">kriecht</p>
+    <p class="word" data-w="2">durch</p>
+    <p class="word" data-w="3">jede Jacke.</p>
+    <p class="word hot" data-w="4">Diese Weste</p>
+    <p class="word hot" data-w="5">heizt zurück.</p>
+  </div>
+</section>
+
+<section class="product" id="produkt">
+  <div class="product-visual reveal">
+    <div class="vest" role="img" aria-label="Illustration der Heizweste mit neun Heizzonen">
+      <svg viewBox="0 0 200 240"><path d="M60 20 L100 34 L140 20 L180 60 L165 95 L165 220 L35 220 L35 95 L20 60 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+      <g class="zones"><circle cx="70" cy="75" r="10"/><circle cx="130" cy="75" r="10"/><circle cx="100" cy="95" r="10"/><circle cx="70" cy="130" r="10"/><circle cx="130" cy="130" r="10"/><circle cx="100" cy="150" r="10"/><circle cx="70" cy="185" r="10"/><circle cx="130" cy="185" r="10"/><circle cx="100" cy="205" r="10"/></g></svg>
+    </div>
+    <p class="micro center">Illustration · Produktfotos folgen</p>
+  </div>
+  <div class="product-info">
+    <h2 data-split>Smart Heating Vest</h2>
+    <p class="price reveal">64,99 € <small>inkl. MwSt.</small></p>
+    <ul class="feats reveal">
+      <li>9 Heizzonen für Rücken, Brust und Nacken</li>
+      <li>USB-Betrieb – mit handelsüblicher Powerbank</li>
+      <li>Wärmendes Baumwollfutter</li>
+      <li>Leichter Schnitt, unter und über Jacken tragbar</li>
+    </ul>
+    <label class="field reveal">Größe
+      <select id="size"><option>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
+    </label>
+    <button class="btn wide reveal" data-buy>In den Warenkorb</button>
+    <p class="micro reveal">Powerbank nicht im Lieferumfang. 14 Tage <a href="legal/widerruf.html">Widerrufsrecht</a>.</p>
+    <p id="buyMsg" class="micro" role="status"></p>
+  </div>
+</section>
+
+<section class="zonen" id="zonen">
+  <h2 data-split>Neun Zonen. Deine Wärme.</h2>
+  <div class="cards">
+    <article class="card reveal"><h3>Rücken</h3><p>Wärme genau dort, wo der Wind zuerst zuschlägt.</p></article>
+    <article class="card reveal"><h3>Brust</h3><p>Hält den Kern warm – das spürst du bis in die Fingerspitzen.</p></article>
+    <article class="card reveal"><h3>Nacken</h3><p>Nie wieder steife Schultern beim Warten an der Haltestelle.</p></article>
+  </div>
+</section>
+
+<section class="faq" id="faq">
+  <h2 data-split>Fragen & Antworten</h2>
+  <details class="reveal"><summary>Wie lange dauert die Lieferung?</summary><p>Da wir im Dropshipping-Verfahren versenden, kann die Lieferung mehrere Tage bis Wochen dauern. Genaue Angaben findest du unter <a href="legal/versand.html">Versand</a>.</p></details>
+  <details class="reveal"><summary>Brauche ich eine Powerbank?</summary><p>Ja, die Weste wird per USB betrieben. Eine Powerbank ist nicht enthalten.</p></details>
+  <details class="reveal"><summary>Kann ich die Weste zurückgeben?</summary><p>Ja, du hast ein 14-tägiges <a href="legal/widerruf.html">Widerrufsrecht</a>.</p></details>
+  <details class="reveal"><summary>Ist sie waschbar?</summary><p>Bitte beachte die Pflegehinweise, die der Sendung beiliegen, und trenne vor dem Waschen den Akku/die USB-Verbindung.</p></details>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="logo">NEXUS<span>SHOP</span></div>
+  <nav>
+    <a href="legal/impressum.html">Impressum</a>
+    <a href="legal/datenschutz.html">Datenschutz</a>
+    <a href="legal/agb.html">AGB</a>
+    <a href="legal/widerruf.html">Widerruf</a>
+    <a href="legal/versand.html">Versand & Zahlung</a>
+    <a href="#" id="cookieSettings">Cookie-Einstellungen</a>
+  </nav>
+  <p class="micro">Alle Preise in Euro inkl. gesetzlicher MwSt., zzgl. Versandkosten.</p>
+</footer>
+
+<div class="cookie" id="cookie" role="dialog" aria-modal="true" aria-labelledby="ck-t" hidden>
+  <h3 id="ck-t">Deine Privatsphäre</h3>
+  <p>Wir nutzen notwendige Technik für den Shop. Optionale Dienste (Statistik, Marketing) laden wir nur mit deiner Einwilligung. Details in der <a href="legal/datenschutz.html">Datenschutzerklärung</a>.</p>
+  <label><input type="checkbox" checked disabled> Notwendig</label>
+  <label><input type="checkbox" id="ck-stats"> Statistik</label>
+  <label><input type="checkbox" id="ck-mkt"> Marketing</label>
+  <div class="row">
+    <button class="btn ghost" id="ck-reject">Alle ablehnen</button>
+    <button class="btn ghost" id="ck-save">Auswahl speichern</button>
+    <button class="btn" id="ck-all">Alle akzeptieren</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
